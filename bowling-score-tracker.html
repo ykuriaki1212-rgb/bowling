@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎳 ボウリングスコア記録</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #e74c3c;
+            --primary-dark: #c0392b;
+            --secondary: #3498db;
+            --accent: #f39c12;
+            --success: #27ae60;
+            --bg: #1a1a2e;
+            --card: #16213e;
+            --text: #eaeaea;
+            --text-muted: #a0a0a0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg) 0%, #0f3460 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sync-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .sync-status.synced {
+            background: var(--success);
+            color: white;
+        }
+
+        .sync-status.loading {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .sync-status.offline {
+            background: var(--primary);
+            color: white;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        input[type="date"],
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary), #2980b9);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #229954);
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            margin: 0 4px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-card.highlight {
+            border-color: var(--accent);
+            background: rgba(243, 156, 18, 0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 8px 0;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--accent));
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .history-item.best {
+            border-left-color: var(--accent);
+            background: rgba(243, 156, 18, 0.1);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .history-date {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .history-score {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .history-note {
+            margin-top: 8px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 0.9em;
+            color: var(--text-muted);
+            white-space: pre-wrap;
+        }
+
+        .video-list {
+            list-style: none;
+        }
+
+        .video-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .video-icon {
+            font-size: 1.5em;
+            margin-right: 12px;
+        }
+
+        .video-info {
+            flex: 1;
+        }
+
+        .video-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .video-subtitle {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+
+        .video-link {
+            color: var(--secondary);
+            text-decoration: none;
+            font-size: 0.85em;
+        }
+
+        .video-link:hover {
+            text-decoration: underline;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-close {
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1.5em;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: none;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 500px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .card {
+                padding: 16px;
+            }
+
+            .history-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .history-actions {
+                margin-top: 8px;
+            }
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .badge-fire {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎳 ボウリングスコア記録</h1>
+            <div class="sync-status" id="syncStatus">⚠️ オフライン</div>
+        </header>
+
+        <!-- スコア入力 -->
+        <div class="card">
+            <h2>📝 スコア記録</h2>
+            <div class="form-group">
+                <label for="date">日付</label>
+                <input type="date" id="date" required>
+            </div>
+            <div class="form-group">
+                <label for="location">場所</label>
+                <input type="text" id="location" list="locationList" value="川口スプリングレーンズ" required>
+                <datalist id="locationList"></datalist>
+            </div>
+            <div class="form-group">
+                <label for="score">スコア (0-300)</label>
+                <input type="number" id="score" min="0" max="300" required>
+            </div>
+            <div class="form-group">
+                <label for="note">成長記録 (任意)</label>
+                <textarea id="note" maxlength="500"></textarea>
+                <div class="char-counter">
+                    <span id="charCount">0</span> / 500
+                </div>
+            </div>
+            <button onclick="saveScore()" id="saveBtn">💾 保存する</button>
+        </div>
+
+        <!-- 統計 -->
+        <div class="card">
+            <h2>📊 統計</h2>
+            <div class="stats-grid">
+                <div class="stat-card highlight">
+                    <div class="stat-label">🏆 自己ベスト</div>
+                    <div class="stat-value" id="bestScore">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">全期間平均</div>
+                    <div class="stat-value" id="avgScore">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">直近10ゲーム</div>
+                    <div class="stat-value" id="recent10Avg">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">総ゲーム数</div>
+                    <div class="stat-value" id="totalGames">0</div>
+                </div>
+            </div>
+            <div id="streakBadge" class="hidden" style="text-align: center; margin-top: 16px;">
+                <span class="badge badge-fire">🔥 100点超え連続達成中!</span>
+            </div>
+        </div>
+
+        <!-- グラフ -->
+        <div class="card">
+            <h2>📈 スコア推移</h2>
+            <canvas id="scoreChart"></canvas>
+        </div>
+
+        <!-- 目標設定 -->
+        <div class="card">
+            <h2>🎯 目標設定</h2>
+            <div class="form-group">
+                <label for="goalScore">目標スコア</label>
+                <input type="number" id="goalScore" min="0" max="300" value="150">
+            </div>
+            <button onclick="setGoal()" class="btn-secondary">目標を設定</button>
+            <div style="margin-top: 20px;">
+                <div id="goalMessage"></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar" style="width: 0%;">0%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 参考動画 -->
+        <div class="card">
+            <h2>🎬 参考動画</h2>
+            <div class="form-group">
+                <label for="videoTitle">タイトル (最大50文字)</label>
+                <input type="text" id="videoTitle" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label for="videoSubtitle">サブタイトル (最大100文字、任意)</label>
+                <input type="text" id="videoSubtitle" maxlength="100">
+            </div>
+            <div class="form-group">
+                <label for="videoUrl">YouTubeリンク</label>
+                <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=...">
+            </div>
+            <button onclick="addVideo()" class="btn-success">➕ 動画を追加</button>
+            <ul class="video-list" id="videoList"></ul>
+        </div>
+
+        <!-- 記録履歴 -->
+        <div class="card">
+            <h2>📋 記録履歴</h2>
+            <button onclick="exportData()" class="btn-secondary" style="margin-bottom: 16px;">
+                📥 JSONエクスポート
+            </button>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <!-- 自己ベスト更新モーダル -->
+    <div class="modal" id="bestModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🎉 自己ベスト更新!</h2>
+                <button class="modal-close" onclick="closeBestModal()">✕</button>
+            </div>
+            <p style="text-align: center; font-size: 1.2em; margin: 20px 0;">
+                おめでとうございます!<br>
+                新記録: <span id="newBestScore" style="color: var(--accent); font-size: 2em; font-weight: bold;"></span> 点
+            </p>
+        </div>
+    </div>
+
+    <!-- 編集モーダル -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ 記録を編集</h2>
+                <button class="modal-close" onclick="closeEditModal()">✕</button>
+            </div>
+            <div class="form-group">
+                <label for="editDate">日付</label>
+                <input type="date" id="editDate">
+            </div>
+            <div class="form-group">
+                <label for="editLocation">場所</label>
+                <input type="text" id="editLocation">
+            </div>
+            <div class="form-group">
+                <label for="editScore">スコア</label>
+                <input type="number" id="editScore" min="0" max="300">
+            </div>
+            <div class="form-group">
+                <label for="editNote">成長記録</label>
+                <textarea id="editNote" maxlength="500"></textarea>
+            </div>
+            <button onclick="updateScore()" class="btn-success">💾 更新する</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 設定 ====================
+        const API_URL = 'ここにGoogle Apps ScriptのウェブアプリURLを貼り付け'; // 要変更
+        const USE_CLOUD = API_URL !== 'ここにGoogle Apps ScriptのウェブアプリURLを貼り付け';
+
+        // ==================== データ管理 ====================
+        let scores = [];
+        let goal = 150;
+        let videos = [];
+        let chart = null;
+        let editingIndex = -1;
+
+        // ローカルストレージキー
+        const STORAGE_KEYS = {
+            SCORES: 'bowlingScores',
+            GOAL: 'bowlingGoal',
+            VIDEOS: 'bowlingVideos'
+        };
+
+        // ==================== 初期化 ====================
+        window.addEventListener('load', async () => {
+            // 今日の日付をデフォルト設定
+            document.getElementById('date').valueAsDate = new Date();
+
+            // 文字数カウンター
+            document.getElementById('note').addEventListener('input', (e) => {
+                document.getElementById('charCount').textContent = e.target.value.length;
+            });
+
+            // データ読み込み
+            await loadAllData();
+            updateUI();
+        });
+
+        // ==================== API連携 ====================
+        async function loadFromCloud() {
+            if (!USE_CLOUD) return null;
+            
+            setSyncStatus('loading');
+            try {
+                const response = await fetch(`${API_URL}?action=load`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    setSyncStatus('synced');
+                    return result.data;
+                } else {
+                    throw new Error(result.error || '読み込みエラー');
+                }
+            } catch (error) {
+                console.error('Cloud load error:', error);
+                setSyncStatus('offline');
+                return null;
+            }
+        }
+
+        async function saveToCloud(data) {
+            if (!USE_CLOUD) return false;
+            
+            setSyncStatus('loading');
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain',
+                    },
+                    body: JSON.stringify({
+                        action: 'save',
+                        data: data
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    setSyncStatus('synced');
+                    return true;
+                } else {
+                    throw new Error(result.error || '保存エラー');
+                }
+            } catch (error) {
+                console.error('Cloud save error:', error);
+                setSyncStatus('offline');
+                return false;
+            }
+        }
+
+        function setSyncStatus(status) {
+            const statusEl = document.getElementById('syncStatus');
+            statusEl.className = 'sync-status ' + status;
+            
+            switch(status) {
+                case 'synced':
+                    statusEl.textContent = '✅ 同期済み';
+                    break;
+                case 'loading':
+                    statusEl.textContent = '🔄 同期中...';
+                    break;
+                case 'offline':
+                    statusEl.textContent = USE_CLOUD ? '⚠️ オフライン' : '💾 ローカル保存';
+                    break;
+            }
+        }
+
+        async function loadAllData() {
+            // クラウドから読み込み試行
+            const cloudData = await loadFromCloud();
+            
+            if (cloudData) {
+                scores = cloudData.scores || [];
+                goal = cloudData.goal || 150;
+                videos = cloudData.videos || [];
+                
+                // ローカルにもバックアップ
+                saveToLocal();
+            } else {
+                // ローカルから読み込み
+                loadFromLocal();
+            }
+        }
+
+        function loadFromLocal() {
+            scores = JSON.parse(localStorage.getItem(STORAGE_KEYS.SCORES) || '[]');
+            goal = parseInt(localStorage.getItem(STORAGE_KEYS.GOAL) || '150');
+            videos = JSON.parse(localStorage.getItem(STORAGE_KEYS.VIDEOS) || '[]');
+            setSyncStatus('offline');
+        }
+
+        function saveToLocal() {
+            localStorage.setItem(STORAGE_KEYS.SCORES, JSON.stringify(scores));
+            localStorage.setItem(STORAGE_KEYS.GOAL, goal.toString());
+            localStorage.setItem(STORAGE_KEYS.VIDEOS, JSON.stringify(videos));
+        }
+
+        async function saveAllData() {
+            const data = {
+                scores: scores,
+                goal: goal,
+                videos: videos
+            };
+            
+            // ローカルに保存
+            saveToLocal();
+            
+            // クラウドに保存
+            await saveToCloud(data);
+        }
+
+        // ==================== スコア管理 ====================
+        async function saveScore() {
+            const date = document.getElementById('date').value;
+            const location = document.getElementById('location').value;
+            const score = parseInt(document.getElementById('score').value);
+            const note = document.getElementById('note').value;
+
+            if (!date || !location || isNaN(score)) {
+                alert('すべての必須項目を入力してください');
+                return;
+            }
+
+            if (score < 0 || score > 300) {
+                alert('スコアは0〜300の範囲で入力してください');
+                return;
+            }
+
+            const newScore = {
+                id: Date.now(),
+                date: date,
+                location: location,
+                score: score,
+                note: note
+            };
+
+            // 自己ベスト判定
+            const currentBest = getBestScore();
+            const isNewBest = !currentBest || score > currentBest.score;
+
+            scores.push(newScore);
+            await saveAllData();
+
+            // フォームリセット
+            document.getElementById('score').value = '';
+            document.getElementById('note').value = '';
+            document.getElementById('charCount').textContent = '0';
+            document.getElementById('date').valueAsDate = new Date();
+
+            updateUI();
+            updateLocationList();
+
+            if (isNewBest) {
+                showBestModal(score);
+            }
+        }
+
+        function getBestScore() {
+            if (scores.length === 0) return null;
+            return scores.reduce((best, current) => 
+                current.score > best.score ? current : best
+            );
+        }
+
+        function getAverageScore() {
+            if (scores.length === 0) return 0;
+            const sum = scores.reduce((acc, s) => acc + s.score, 0);
+            return Math.round(sum / scores.length);
+        }
+
+        function getRecent10Average() {
+            if (scores.length === 0) return 0;
+            const recent = scores.slice(-10);
+            const sum = recent.reduce((acc, s) => acc + s.score, 0);
+            return Math.round(sum / recent.length);
+        }
+
+        function checkStreak() {
+            if (scores.length < 3) return false;
+            const recent = scores.slice(-3);
+            return recent.every(s => s.score > 100);
+        }
+
+        function editScore(index) {
+            editingIndex = index;
+            const score = scores[index];
+
+            document.getElementById('editDate').value = score.date;
+            document.getElementById('editLocation').value = score.location;
+            document.getElementById('editScore').value = score.score;
+            document.getElementById('editNote').value = score.note || '';
+
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        async function updateScore() {
+            if (editingIndex < 0) return;
+
+            const date = document.getElementById('editDate').value;
+            const location = document.getElementById('editLocation').value;
+            const score = parseInt(document.getElementById('editScore').value);
+            const note = document.getElementById('editNote').value;
+
+            if (!date || !location || isNaN(score)) {
+                alert('すべての必須項目を入力してください');
+                return;
+            }
+
+            scores[editingIndex] = {
+                ...scores[editingIndex],
+                date: date,
+                location: location,
+                score: score,
+                note: note
+            };
+
+            await saveAllData();
+            closeEditModal();
+            updateUI();
+        }
+
+        async function deleteScore(index) {
+            if (confirm('この記録を削除しますか?')) {
+                scores.splice(index, 1);
+                await saveAllData();
+                updateUI();
+            }
+        }
+
+        // ==================== 目標管理 ====================
+        async function setGoal() {
+            const newGoal = parseInt(document.getElementById('goalScore').value);
+            if (isNaN(newGoal) || newGoal < 0 || newGoal > 300) {
+                alert('目標スコアは0〜300の範囲で入力してください');
+                return;
+            }
+            goal = newGoal;
+            await saveAllData();
+            updateGoalProgress();
+        }
+
+        function updateGoalProgress() {
+            const best = getBestScore();
+            if (!best) {
+                document.getElementById('goalMessage').innerHTML = 
+                    '<p style="color: var(--text-muted);">まだ記録がありません</p>';
+                document.getElementById('progressBar').style.width = '0%';
+                document.getElementById('progressBar').textContent = '0%';
+                return;
+            }
+
+            const percentage = Math.min(Math.round((best.score / goal) * 100), 100);
+            const isAchieved = best.score >= goal;
+
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressBar').textContent = percentage + '%';
+
+            if (isAchieved) {
+                document.getElementById('goalMessage').innerHTML = 
+                    `<p style="color: var(--success); font-weight: bold;">🎉 目標達成! (${best.score}点 / ${goal}点)</p>`;
+            } else {
+                const gap = goal - best.score;
+                document.getElementById('goalMessage').innerHTML = 
+                    `<p style="color: var(--text-muted);">あと${gap}点で目標達成! (${best.score}点 / ${goal}点)</p>`;
+            }
+        }
+
+        // ==================== 動画管理 ====================
+        async function addVideo() {
+            const title = document.getElementById('videoTitle').value.trim();
+            const subtitle = document.getElementById('videoSubtitle').value.trim();
+            const url = document.getElementById('videoUrl').value.trim();
+
+            if (!title || !url) {
+                alert('タイトルとURLを入力してください');
+                return;
+            }
+
+            if (videos.length >= 5) {
+                alert('動画は最大5件までです');
+                return;
+            }
+
+            const icons = ['🎬', '🎳', '🌟', '🎯', '📊'];
+            const newVideo = {
+                id: Date.now(),
+                title: title,
+                subtitle: subtitle,
+                url: url,
+                icon: icons[videos.length % icons.length]
+            };
+
+            videos.push(newVideo);
+            await saveAllData();
+
+            // フォームリセット
+            document.getElementById('videoTitle').value = '';
+            document.getElementById('videoSubtitle').value = '';
+            document.getElementById('videoUrl').value = '';
+
+            updateVideoList();
+        }
+
+        async function deleteVideo(index) {
+            if (confirm('この動画を削除しますか?')) {
+                videos.splice(index, 1);
+                await saveAllData();
+                updateVideoList();
+            }
+        }
+
+        function updateVideoList() {
+            const list = document.getElementById('videoList');
+            list.innerHTML = '';
+
+            if (videos.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-muted); text-align: center;">まだ動画が登録されていません</p>';
+                return;
+            }
+
+            videos.forEach((video, index) => {
+                const li = document.createElement('li');
+                li.className = 'video-item';
+                li.innerHTML = `
+                    <div style="display: flex; align-items: center; flex: 1;">
+                        <span class="video-icon">${video.icon}</span>
+                        <div class="video-info">
+                            <div class="video-title">${video.title}</div>
+                            ${video.subtitle ? `<div class="video-subtitle">${video.subtitle}</div>` : ''}
+                            <a href="${video.url}" target="_blank" class="video-link">📺 動画を見る</a>
+                        </div>
+                    </div>
+                    <button class="btn-small" onclick="deleteVideo(${index})" style="background: var(--primary);">削除</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        // ==================== UI更新 ====================
+        function updateUI() {
+            updateStats();
+            updateChart();
+            updateGoalProgress();
+            updateHistory();
+            updateVideoList();
+            updateLocationList();
+        }
+
+        function updateStats() {
+            const best = getBestScore();
+            document.getElementById('bestScore').textContent = best ? best.score : '-';
+            document.getElementById('avgScore').textContent = scores.length > 0 ? getAverageScore() : '-';
+            document.getElementById('recent10Avg').textContent = scores.length > 0 ? getRecent10Average() : '-';
+            document.getElementById('totalGames').textContent = scores.length;
+
+            // 連続記録バッジ
+            const streakBadge = document.getElementById('streakBadge');
+            if (checkStreak()) {
+                streakBadge.classList.remove('hidden');
+            } else {
+                streakBadge.classList.add('hidden');
+            }
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+            
+            // 日付順にソート
+            const sortedScores = [...scores].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            const labels = sortedScores.map(s => s.date);
+            const data = sortedScores.map(s => s.score);
+            const goalLine = Array(data.length).fill(goal);
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'スコア',
+                            data: data,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '目標',
+                            data: goalLine,
+                            borderColor: '#f39c12',
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#eaeaea'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 300,
+                            ticks: {
+                                color: '#eaeaea'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#eaeaea'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = '';
+
+            if (scores.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-muted); text-align: center;">まだ記録がありません</p>';
+                return;
+            }
+
+            const best = getBestScore();
+            const sortedScores = [...scores].reverse(); // 新しい順
+
+            sortedScores.forEach((score, reverseIndex) => {
+                const index = scores.length - 1 - reverseIndex;
+                const isBest = best && score.id === best.id;
+
+                const div = document.createElement('div');
+                div.className = 'history-item' + (isBest ? ' best' : '');
+                div.innerHTML = `
+                    <div class="history-header">
+                        <div>
+                            <span class="history-date">${score.date}</span>
+                            ${isBest ? ' 🏆' : ''}
+                            <div style="color: var(--text-muted); font-size: 0.9em; margin-top: 4px;">
+                                ${score.location}
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="history-score">${score.score}</div>
+                            <div class="history-actions">
+                                <button class="btn-small btn-secondary" onclick="editScore(${index})">編集</button>
+                                <button class="btn-small" onclick="deleteScore(${index})" style="background: var(--primary);">削除</button>
+                            </div>
+                        </div>
+                    </div>
+                    ${score.note ? `<div class="history-note">${score.note}</div>` : ''}
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function updateLocationList() {
+            const datalist = document.getElementById('locationList');
+            const locations = [...new Set(scores.map(s => s.location))];
+            datalist.innerHTML = locations.map(loc => `<option value="${loc}">`).join('');
+        }
+
+        // ==================== モーダル ====================
+        function showBestModal(score) {
+            document.getElementById('newBestScore').textContent = score;
+            document.getElementById('bestModal').classList.add('active');
+        }
+
+        function closeBestModal() {
+            document.getElementById('bestModal').classList.remove('active');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            editingIndex = -1;
+        }
+
+        // ==================== エクスポート ====================
+        function exportData() {
+            const data = {
+                scores: scores,
+                goal: goal,
+                videos: videos,
+                exportDate: new Date().toISOString()
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bowling-scores-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
